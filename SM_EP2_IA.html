@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aventura con la IA - Colegio San Mateo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    body {
+      font-family: 'Fredoka', cursive, sans-serif;
+      background: #5c940d;
+      background-image: 
+        radial-gradient(#74b816 15%, transparent 16%),
+        radial-gradient(#5c940d 15%, transparent 16%);
+      background-size: 32px 32px;
+      background-position: 0 0, 16px 16px;
+      user-select: none;
+      image-rendering: pixelated;
+    }
+
+    .font-pixel {
+      font-family: 'Press Start 2P', monospace;
+    }
+
+    /* Bordes estilo bloque Minecraft */
+    .mc-block {
+      background-color: #795548;
+      border: 6px solid #3e2723;
+      box-shadow: inset -6px -6px 0px #4e342e, inset 6px 6px 0px #8d6e63;
+    }
+
+    .mc-block-grass {
+      background-color: #558b2f;
+      border: 6px solid #2e7d32;
+      box-shadow: inset -6px -6px 0px #33691e, inset 6px 6px 0px #7cb342;
+    }
+
+    .mc-button-wood {
+      background-color: #8d6e63;
+      border: 4px solid #3e2723;
+      box-shadow: inset -4px -4px 0px #4e342e, inset 4px 4px 0px #a1887f;
+      transition: all 0.1s;
+    }
+    .mc-button-wood:hover {
+      background-color: #a1887f;
+      transform: scale(1.02);
+    }
+    .mc-button-wood:active {
+      box-shadow: inset 4px 4px 0px #4e342e;
+    }
+
+    .mc-button-green {
+      background-color: #4caf50;
+      border: 4px solid #1b5e20;
+      box-shadow: inset -4px -4px 0px #2e7d32, inset 4px 4px 0px #81c784;
+    }
+    .mc-button-green:hover {
+      background-color: #66bb6a;
+      transform: scale(1.02);
+    }
+
+    /* 3D Flip Card Effect adaptado a Minecraft */
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-style: preserve-3d;
+      cursor: pointer;
+    }
+    .flip-card-inner.flipped {
+      transform: rotateY(180deg);
+    }
+    .flip-card-front, .flip-card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border-radius: 0.5rem;
+    }
+    
+    /* Cartas IA (Gris) */
+    .flip-card-front-ai {
+      background-color: #616161;
+      border: 4px solid #212121;
+      box-shadow: inset -4px -4px 0px #424242, inset 4px 4px 0px #757575;
+    }
+    .flip-card-back-ai {
+      background-color: #fff8e1;
+      border: 4px solid #ffb300;
+      box-shadow: inset -4px -4px 0px #ffe082, inset 4px 4px 0px #ffffff;
+      transform: rotateY(180deg);
+    }
+
+    /* Cartas Humana (Verde / Tierra Minecraft) */
+    .flip-card-front-human {
+      background-color: #388e3c;
+      border: 4px solid #1b5e20;
+      box-shadow: inset -4px -4px 0px #2e7d32, inset 4px 4px 0px #66bb6a;
+    }
+    .flip-card-back-human {
+      background-color: #e8f5e9;
+      border: 4px solid #4caf50;
+      box-shadow: inset -4px -4px 0px #a5d6a7, inset 4px 4px 0px #ffffff;
+      transform: rotateY(180deg);
+    }
+
+    /* Animación tablero de ajedrez / Turochamp */
+    @keyframes chessMove {
+      0% { transform: translate(0, 0); }
+      50% { transform: translate(30px, -15px); }
+      100% { transform: translate(0, 0); }
+    }
+    .chess-piece-anim {
+      animation: chessMove 3s infinite ease-in-out;
+    }
+
+    /* Mini Creeper Píxel */
+    .pixel-creeper {
+      width: 24px;
+      height: 24px;
+      background-color: #55ff55;
+      border: 2px solid #00aa00;
+      position: relative;
+      box-shadow: inset -2px -2px 0px #00aa00, inset 2px 2px 0px #aaffaa;
+      transition: all 0.3s ease;
+    }
+    .pixel-creeper::before {
+      content: '';
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: #000;
+      top: 5px;
+      left: 3px;
+      box-shadow: 10px 0 0 #000, 3px 5px 0 #000, 7px 5px 0 #000, 3px 9px 0 #000, 7px 9px 0 #000, 5px 7px 0 #000;
+    }
+
+    .bounce-subtle {
+      animation: bounceSubtle 2s infinite;
+    }
+    @keyframes bounceSubtle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between overflow-hidden text-gray-800 p-3 md:p-5">
+
+  <!-- Header tipo HUD Minecraft con referencia a 2º de Primaria del Colegio San Mateo -->
+  <header class="flex flex-col md:flex-row justify-between items-center mc-block p-3 rounded-xl z-20 text-white gap-2">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl md:text-3xl">⛏️</span>
+      <h1 class="text-xs md:text-sm font-pixel text-yellow-300 drop-shadow-[2px_2px_0_#000]">
+        ¿Qué es la Inteligencia Artificial?
+      </h1>
+    </div>
+    <div class="bg-black/40 px-3 py-1 border border-yellow-400 text-yellow-300 font-pixel text-[10px] md:text-xs text-center">
+      🏫 Colegio San Mateo - 2º de Primaria
+    </div>
+    <div class="flex items-center gap-4">
+      <span id="card-counter" class="hidden xl:inline-block bg-black/40 text-yellow-300 font-pixel text-[10px] px-2 py-1 border border-yellow-500">
+        👆 ¡Toca las cartas!
+      </span>
+      <div id="slide-indicator" class="bg-blue-600 text-white font-pixel text-xs md:text-sm px-3 py-2 border-2 border-white">
+        Diapositiva 1 / 10
+      </div>
+    </div>
+  </header>
+
+  <!-- Principal: Contenedor de Diapositivas -->
+  <main class="relative flex-1 my-2 flex items-center justify-center z-10 overflow-y-auto">
+    
+    <!-- DIAPOSITIVA 1: Portada -->
+    <div class="slide flex flex-col items-center justify-center text-center p-4 max-w-5xl w-full">
+      <h2 class="text-2xl md:text-4xl font-pixel text-yellow-300 mb-4 drop-shadow-[3px_3px_0_#000] text-center">
+        ⚡ ¿Qué es la Inteligencia Artificial? ⚡
+      </h2>
+      <div class="mc-block-grass rounded-2xl p-6 md:p-8 w-full text-white flex flex-col items-center shadow-2xl border-4 border-emerald-950">
+        <div class="text-6xl md:text-8xl mb-3 bounce-subtle">🟩</div>
+        
+        <h3 class="text-xl md:text-3xl font-pixel text-yellow-200 mb-4 drop-shadow-[2px_2px_0_#000]">
+          ¡Hola, Exploradores del Colegio San Mateo!
+        </h3>
+
+        <div class="bg-black/40 border-2 border-yellow-400 rounded-xl p-3 md:p-4 mb-5 max-w-xl w-full flex items-center justify-center gap-4">
+          <span class="text-3xl md:text-5xl">🗣️💻</span>
+          <div class="text-left">
+            <p class="text-yellow-300 font-pixel text-sm md:text-base">Eduardo Merchán</p>
+            <p class="text-gray-200 font-bold text-base md:text-lg">Mi trabajo es: ¡Hablar con ordenadores! 🤖✨</p>
+          </div>
+        </div>
+
+        <p class="text-lg md:text-2xl font-bold max-w-3xl mb-6 drop-shadow-[1px_1px_0_#000] leading-snug">
+          Hoy vamos a descubrir un superpoder increíble que está cambiando nuestro mundo: <br>
+          <span class="text-cyan-300 font-pixel text-base md:text-xl underline decoration-wavy">La Inteligencia Artificial</span>
+        </p>
+
+        <button onclick="nextSlide()" class="mc-button-green text-white font-pixel text-base md:text-lg px-8 py-4 rounded-lg shadow-lg flex items-center gap-3">
+          ¡Comenzar la aventura! ➔
+        </button>
+      </div>
+    </div>
+
+    <!-- DIAPOSITIVA 2: Paralelismo Humana vs. IA (Cartas revelables) -->
+    <div class="slide hidden flex-col items-center justify-center p-2 max-w-6xl w-full">
+      <h2 class="text-lg md:text-2xl font-pixel text-yellow-300 drop-shadow-[3px_3px_0_#000] mb-3 text-center">
+        🧠 Inteligencia Humana vs. Inteligencia Artificial
+      </h2>
+      
+      <!-- SECCIÓN 1: INTELIGENCIA HUMANA -->
+      <div class="w-full mb-3">
+        <h3 class="text-xs md:text-sm font-pixel text-green-300 mb-2 flex items-center gap-2">
+          <span>👦</span> INTELIGENCIA HUMANA (NUESTRO CEREBRO)
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full h-[155px] md:h-[180px] perspective-1000">
+          
+          <div class="flip-card-inner" onclick="toggleCard(this)">
+            <div class="flip-card-front flip-card-front-human flex flex-col items-center justify-center p-3 text-white">
+              <span class="text-3xl md:text-4xl mb-1">🧠</span>
+              <h4 class="text-xs md:text-sm font-pixel text-yellow-300 text-center">Memoria</h4>
+              <p class="text-gray-200 text-xs mt-1 font-bold">¡Toca para voltear!</p>
+            </div>
+            <div class="flip-card-back flip-card-back-human flex flex-col items-center justify-center p-3 text-center text-gray-800">
+              <span class="text-2xl mb-1">💭</span>
+              <h4 class="text-sm md:text-base font-bold text-green-800 mb-1">Recuerdos y Vivencias</h4>
+              <p class="text-gray-700 text-sm md:text-base">Guardamos nombres, momentos felices, emociones e historias en nuestro cerebro.</p>
+            </div>
+          </div>
+
+          <div class="flip-card-inner" onclick="toggleCard(this)">
+            <div class="flip-card-front flip-card-front-human flex flex-col items-center justify-center p-3 text-white">
+              <span class="text-3xl md:text-4xl mb-1">🎒</span>
+              <h4 class="text-xs md:text-sm font-pixel text-yellow-300 text-center">Aprender</h4>
+              <p class="text-gray-200 text-xs mt-1 font-bold">¡Toca para voltear!</p>
+            </div>
+            <div class="flip-card-back flip-card-back-human flex flex-col items-center justify-center p-3 text-center text-gray-800">
+              <span class="text-2xl mb-1">🏫</span>
+              <h4 class="text-sm md:text-base font-bold text-green-800 mb-1">En el Colegio</h4>
+              <p class="text-gray-700 text-sm md:text-base">Aprendemos día a día en las clases, escuchando a los profesores, practicando y descubriendo cosas con los compañeros.</p>
+            </div>
+          </div>
+
+          <div class="flip-card-inner" onclick="toggleCard(this)">
+            <div class="flip-card-front flip-card-front-human flex flex-col items-center justify-center p-3 text-white">
+              <span class="text-3xl md:text-4xl mb-1">🧘</span>
+              <h4 class="text-xs md:text-sm font-pixel text-yellow-300 text-center">Velocidad / Ritmo</h4>
+              <p class="text-gray-200 text-xs mt-1 font-bold">¡Toca para voltear!</p>
+            </div>
+            <div class="flip-card-back flip-card-back-human flex flex-col items-center justify-center p-3 text-center text-gray-800">
+              <span class="text-2xl mb-1">⏳</span>
+              <h4 class="text-sm md:text-base font-bold text-green-800 mb-1">Ritmo Humano</h4>
+              <p class="text-gray-700 text-sm md:text-base">Pensamos paso a paso, nos cansamos, necesitamos descansar, dormir y jugar.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SECCIÓN 2: INTELIGENCIA ARTIFICIAL -->
+      <div class="w-full">
+        <h3 class="text-xs md:text-sm font-pixel text-cyan-300 mb-2 flex items-center gap-2">
+          <span>🤖</span> INTELIGENCIA ARTIFICIAL (EL ORDENADOR)
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full h-[155px] md:h-[180px] perspective-1000">
+          
+          <div class="flip-card-inner" onclick="toggleCard(this)">
+            <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-3 text-white">
+              <span class="text-3xl md:text-4xl mb-1">💾</span>
+              <h4 class="text-xs md:text-sm font-pixel text-yellow-300 text-center">Memoria</h4>
+              <p class="text-gray-300 text-xs mt-1 font-bold">¡Toca para voltear!</p>
+            </div>
+            <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-3 text-center text-gray-800">
+              <span class="text-2xl mb-1">📖</span>
+              <h4 class="text-sm md:text-base font-bold text-amber-800 mb-1">Un cuaderno mágico</h4>
+              <p class="text-gray-700 text-sm md:text-base">Es un programa en el ordenador que guarda millones de datos y ejercicios en discos gigantes.</p>
+            </div>
+          </div>
+
+          <div class="flip-card-inner" onclick="toggleCard(this)">
+            <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-3 text-white">
+              <span class="text-3xl md:text-4xl mb-1">📊</span>
+              <h4 class="text-xs md:text-sm font-pixel text-yellow-300 text-center">Aprender</h4>
+              <p class="text-gray-300 text-xs mt-1 font-bold">¡Toca para voltear!</p>
+            </div>
+            <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-3 text-center text-gray-800">
+              <span class="text-2xl mb-1">👀</span>
+              <h4 class="text-sm md:text-base font-bold text-purple-800 mb-1">Aprende con ejemplos</h4>
+              <p class="text-gray-700 text-sm md:text-base">No tiene ojos ni corazón. Le mostramos miles de fotos hasta que reconoce qué es cada cosa.</p>
+            </div>
+          </div>
+
+          <div class="flip-card-inner" onclick="toggleCard(this)">
+            <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-3 text-white">
+              <span class="text-3xl md:text-4xl mb-1">⚡</span>
+              <h4 class="text-xs md:text-sm font-pixel text-yellow-300 text-center">Velocidad / Ritmo</h4>
+              <p class="text-gray-300 text-xs mt-1 font-bold">¡Toca para voltear!</p>
+            </div>
+            <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-3 text-center text-gray-800">
+              <span class="text-2xl mb-1">⚡</span>
+              <h4 class="text-sm md:text-base font-bold text-red-700 mb-1">Súper rápida</h4>
+              <p class="text-gray-700 text-sm md:text-base">Resuelve operaciones y lee 1.000 libros en un segundo sin cansarse nunca.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- DIAPOSITIVA 3: Historia (Cartas revelables) -->
+    <div class="slide hidden flex-col items-center justify-center p-4 max-w-5xl w-full">
+      <h2 class="text-xl md:text-3xl font-pixel text-yellow-300 drop-shadow-[3px_3px_0_#000] mb-4 text-center">
+        📜 ¿Cómo se inventó la IA?
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full h-[410px] perspective-1000">
+        
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-5 text-white text-center">
+            <span class="text-5xl mb-3">🕵️‍♂️</span>
+            <h3 class="text-xs md:text-sm font-pixel text-amber-300 mb-2">¿Cuántos años hace que se inventó la IA?</h3>
+            <p class="text-gray-300 text-xs font-bold">¡Toca para revelar el secreto!</p>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col justify-between p-4 text-center text-gray-800 overflow-y-auto">
+            <div>
+              <h3 class="text-base md:text-lg font-bold text-amber-800 mb-2">Hace 70 años, por científicos curiosos</h3>
+              <p class="text-gray-700 text-sm md:text-base leading-snug mb-2"><b>Alan Turing y su colega D.G. Champernowne</b> y otros científicos se preguntaron: <i>"¿Podrán las máquinas pensar como nosotros algún día?"</i>. Empezaron jugando al ajedrez diseñando <b>Turochamp</b>.</p>
+              <p class="text-gray-700 text-xs md:text-sm leading-snug"><b>Funcionamiento y nivel:</b> Lo ejecutaban a mano en papel siguiendo las reglas matemáticas, tardando varios minutos por jugada con un nivel de aficionado básico.</p>
+            </div>
+            
+            <div class="mt-2 bg-stone-900 border-2 border-amber-600 rounded p-2 flex items-center justify-center gap-4 relative overflow-hidden h-14">
+              <div class="absolute inset-0 opacity-25 bg-[linear-gradient(45deg,#000_25%,transparent_25%),linear-gradient(-45deg,#000_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#000_75%),linear-gradient(-45deg,transparent_75%,#000_75%)] bg-[size:16px_16px]"></div>
+              <span class="text-2xl chess-piece-anim relative z-10">♖</span>
+              <span class="text-amber-300 font-pixel text-[9px] relative z-10">Turochamp<br>Calculando jugada...</span>
+              <span class="text-2xl chess-piece-anim relative z-10" style="animation-direction: reverse;">♟️</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-6 text-white text-center">
+            <span class="text-6xl mb-4">💻</span>
+            <h3 class="text-xs md:text-sm font-pixel text-cyan-300 mb-2">El gran salto (¡Hoy!)</h3>
+            <p class="text-gray-300 text-xs font-bold">¡Toca para ver la sorpresa!</p>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-6 text-center text-gray-800">
+            <span class="text-5xl mb-4">🚀</span>
+            <h3 class="text-lg md:text-xl font-bold text-cyan-800 mb-3">¡Superordenadores!</h3>
+            <p class="text-gray-700 text-base md:text-lg leading-relaxed">Ahora los ordenadores son gigantescos y muy potentes. Pueden escribir historias, entender idiomas y dibujar en segundos.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- DIAPOSITIVA 4: Usos cotidianos (Cartas revelables) -->
+    <div class="slide hidden flex-col items-center justify-center p-4 max-w-5xl w-full">
+      <h2 class="text-xl md:text-3xl font-pixel text-yellow-300 drop-shadow-[3px_3px_0_#000] mb-6 text-center">
+        🏠 ¿En qué nos ayuda HOY en día?
+      </h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full h-[380px] perspective-1000">
+        
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-4 text-white">
+            <span class="text-5xl mb-3">📱</span>
+            <h4 class="font-pixel text-xs text-red-300 text-center">En el Móvil</h4>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-4 text-center text-gray-800">
+            <span class="text-4xl mb-3">📸</span>
+            <p class="text-sm md:text-base font-bold text-gray-700 leading-snug">Filtros divertidos en las fotos y la voz de Alexa/Siri.</p>
+          </div>
+        </div>
+
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-4 text-white">
+            <span class="text-5xl mb-3">👨‍💻</span>
+            <h4 class="font-pixel text-xs text-blue-300 text-center">En el Trabajo</h4>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-4 text-center text-gray-800">
+            <span class="text-4xl mb-3">💻</span>
+            <p class="text-sm md:text-base font-bold text-gray-700 leading-snug">Nos ayuda a los programadores a escribir código mucho más rápido.</p>
+          </div>
+        </div>
+
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-4 text-white">
+            <span class="text-5xl mb-3">🏥</span>
+            <h4 class="font-pixel text-xs text-green-300 text-center">En la Salud</h4>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-4 text-center text-gray-800">
+            <span class="text-4xl mb-3">🩺</span>
+            <p class="text-sm md:text-base font-bold text-gray-700 leading-snug">Ayuda a los médicos a revisar radiografías y curar antes a los niños.</p>
+          </div>
+        </div>
+
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-4 text-white">
+            <span class="text-5xl mb-3">🎮</span>
+            <h4 class="font-pixel text-xs text-yellow-300 text-center">En los Juegos</h4>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-4 text-center text-gray-800">
+            <span class="text-4xl mb-3">👾</span>
+            <p class="text-sm md:text-base font-bold text-gray-700 leading-snug">Hace que los personajes del juego aprendan y te retan.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- DIAPOSITIVA 5: Superpoderes (Cartas revelables) -->
+    <div class="slide hidden flex-col items-center justify-center p-4 max-w-5xl w-full">
+      <h2 class="text-xl md:text-3xl font-pixel text-yellow-300 drop-shadow-[3px_3px_0_#000] mb-6 text-center">
+        ⭐ ¡Los 3 Superpoderes de la IA!
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full h-[380px] perspective-1000">
+        
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-6 text-white">
+            <span class="text-6xl mb-4">⚡</span>
+            <h3 class="text-sm font-pixel text-yellow-300">Poder 1</h3>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-6 text-center text-gray-800">
+            <h3 class="text-lg md:text-xl font-bold text-yellow-700 mb-3">Súper Velocidad</h3>
+            <p class="text-gray-700 text-base md:text-lg leading-relaxed">¡Se lee 1.000 libros enteros en lo que tú tardas en pestañear!</p>
+          </div>
+        </div>
+
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-6 text-white">
+            <span class="text-6xl mb-4">🧘</span>
+            <h3 class="text-sm font-pixel text-green-300">Poder 2</h3>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-6 text-center text-gray-800">
+            <h3 class="text-lg md:text-xl font-bold text-emerald-700 mb-3">Paciencia Infinita</h3>
+            <p class="text-gray-700 text-base md:text-lg leading-relaxed">Nunca se enfada ni se cansa de responder a tus preguntas 100 veces.</p>
+          </div>
+        </div>
+
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-6 text-white">
+            <span class="text-6xl mb-4">🎨</span>
+            <h3 class="text-sm font-pixel text-purple-300">Poder 3</h3>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-6 text-center text-gray-800">
+            <h3 class="text-lg md:text-xl font-bold text-purple-700 mb-3">Super Imaginación</h3>
+            <p class="text-gray-700 text-base md:text-lg leading-relaxed">Ayuda a inventar canciones, cuentos fantásticos y dibujos increíbles.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- DIAPOSITIVA 6: El Futuro (Cartas revelables) -->
+    <div class="slide hidden flex-col items-center justify-center p-4 max-w-5xl w-full">
+      <h2 class="text-xl md:text-3xl font-pixel text-yellow-300 drop-shadow-[3px_3px_0_#000] mb-6 text-center">
+        🔮 ¿Cómo nos ayudará en el FUTURO?
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full h-[380px] perspective-1000">
+        
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-6 text-white">
+            <span class="text-6xl mb-4">🚗</span>
+            <h3 class="text-sm font-pixel text-blue-300">Futuro 1</h3>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-6 text-center text-gray-800">
+            <span class="text-4xl mb-3">🤖🚘</span>
+            <h3 class="text-lg md:text-xl font-bold text-blue-700 mb-2">Coches Autónomos</h3>
+            <p class="text-gray-700 text-sm md:text-base leading-snug">Viajaremos en coches seguros que se conducirán solos sin volante.</p>
+          </div>
+        </div>
+
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-6 text-white">
+            <span class="text-6xl mb-4">🌍</span>
+            <h3 class="text-sm font-pixel text-green-300">Futuro 2</h3>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-6 text-center text-gray-800">
+            <span class="text-4xl mb-3">🌲🐬</span>
+            <h3 class="text-lg md:text-xl font-bold text-green-700 mb-2">Cuidar el Planeta</h3>
+            <p class="text-gray-700 text-sm md:text-base leading-snug">Ayudará a limpiar los océanos y a proteger a los animales en peligro.</p>
+          </div>
+        </div>
+
+        <div class="flip-card-inner" onclick="toggleCard(this)">
+          <div class="flip-card-front flip-card-front-ai flex flex-col items-center justify-center p-6 text-white">
+            <span class="text-6xl mb-4">🤖</span>
+            <h3 class="text-sm font-pixel text-yellow-300">Futuro 3</h3>
+          </div>
+          <div class="flip-card-back flip-card-back-ai flex flex-col items-center justify-center p-6 text-center text-gray-800">
+            <span class="text-4xl mb-3">🧹🧸</span>
+            <h3 class="text-lg md:text-xl font-bold text-amber-700 mb-2">Robots en Casa</h3>
+            <p class="text-gray-700 text-sm md:text-base leading-snug">Nos ayudarán a recoger los juguetes y cocinar cosas deliciosas.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- DIAPOSITIVA 7: Entrenamiento interactivo Perro (Original) -->
+    <div class="slide hidden flex-col items-center justify-center p-6 mc-block rounded-2xl max-w-4xl w-full text-white">
+      <h2 class="text-xl md:text-2xl font-pixel text-yellow-300 mb-3 text-center drop-shadow-[2px_2px_0_#000]">
+        🐶 Entrenando a nuestra IA: ¿Qué es esto?
+      </h2>
+      <p class="text-base md:text-lg text-gray-200 mb-4 text-center font-bold">¡Haz clic en las fotos de perros para enseñarle a la IA!</p>
+      
+      <div class="w-full bg-black/60 rounded-none h-7 mb-6 overflow-hidden border-2 border-gray-400 p-0.5">
+        <div id="ai-progress" class="bg-green-500 h-full w-0 transition-all duration-500 flex items-center justify-center text-xs text-black font-pixel">0%</div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 w-full">
+        <button onclick="trainDog(1)" class="train-btn p-4 mc-button-wood rounded-lg flex flex-col items-center text-white">
+          <span class="text-5xl mb-2">🐶</span>
+          <span class="text-xs font-pixel">Foto 1</span>
+        </button>
+        <button onclick="trainDog(2)" class="train-btn p-4 mc-button-wood rounded-lg flex flex-col items-center text-white">
+          <span class="text-5xl mb-2">🐕</span>
+          <span class="text-xs font-pixel">Foto 2</span>
+        </button>
+        <button onclick="trainDog(3)" class="train-btn p-4 mc-button-wood rounded-lg flex flex-col items-center text-white">
+          <span class="text-5xl mb-2">🦮</span>
+          <span class="text-xs font-pixel">Foto 3</span>
+        </button>
+        <button onclick="trainDog(4)" class="train-btn p-4 mc-button-wood rounded-lg flex flex-col items-center text-white">
+          <span class="text-5xl mb-2">🐩</span>
+          <span class="text-xs font-pixel">Foto 4</span>
+        </button>
+      </div>
+
+      <div id="ai-verdict" class="bg-black/50 p-4 rounded-lg text-center w-full border-2 border-yellow-500">
+        <p class="text-base md:text-lg font-pixel text-white">Estado de la IA: <span id="ai-status" class="text-yellow-400">Confundida (0/4 fotos)</span></p>
+      </div>
+    </div>
+
+    <!-- DIAPOSITIVA 8: Generador Mágico Dinámico -->
+    <div class="slide hidden flex-col items-center justify-center p-6 mc-block rounded-2xl max-w-4xl w-full text-white">
+      <h2 class="text-xl md:text-2xl font-pixel text-purple-300 mb-3 text-center drop-shadow-[2px_2px_0_#000]">
+        🎨 Mesa de Crafteo Mágica de la IA
+      </h2>
+      <p class="text-base md:text-lg text-gray-200 mb-4 text-center font-bold">Combina los materiales y mira lo que craftea la IA:</p>
+
+      <div class="grid grid-cols-3 gap-3 mb-5 w-full text-gray-900">
+        <select id="select-animal" class="p-3 rounded-lg border-2 border-black font-pixel text-xs md:text-sm bg-amber-100">
+          <option value="dog">🐶 Perro</option>
+          <option value="cat">🐱 Gato</option>
+          <option value="dragon">🐉 Dragón</option>
+          <option value="unicorn">🦄 Unicornio</option>
+        </select>
+        <select id="select-costume" class="p-3 rounded-lg border-2 border-black font-pixel text-xs md:text-sm bg-amber-100">
+          <option value="astronaut">👨‍🚀 Astronauta</option>
+          <option value="pirate">🏴‍☠️ Pirata</option>
+          <option value="superhero">🦸 Superhéroe</option>
+          <option value="wizard">🧙 Wizard</option>
+        </select>
+        <select id="select-action" class="p-3 rounded-xl border-2 border-black font-pixel text-xs md:text-sm bg-amber-100">
+          <option value="eating pizza on Mars">🍕 Comiendo pizza en Marte</option>
+          <option value="skateboarding in space">🛹 En monopatín por el espacio</option>
+          <option value="dancing in the rain">🌧️ Bailando en la lluvia</option>
+        </select>
+      </div>
+
+      <button onclick="generateCustomAIArt()" class="mc-button-green text-white font-pixel text-sm md:text-base px-8 py-3 rounded-lg shadow-lg mb-4 flex items-center gap-2">
+        ✨ ¡Craftear Cuadro!
+      </button>
+
+      <div class="w-full h-56 bg-black/40 rounded-lg flex items-center justify-center border-4 border-dashed border-purple-400 relative overflow-hidden">
+        <div id="generator-loader" class="hidden flex-col items-center">
+          <div class="animate-spin text-5xl mb-2">⚙️</div>
+          <p class="font-pixel text-sm text-purple-300">La IA está crafteando...</p>
+        </div>
+        <img id="generated-img" class="hidden w-full h-full object-contain rounded-lg" alt="IA Result">
+        <p id="generator-placeholder" class="text-gray-300 font-pixel text-xs md:text-sm">Elige materiales y toca en Craftear</p>
+      </div>
+    </div>
+
+    <!-- DIAPOSITIVA 9: Experimento Cerdito Volador -->
+    <div class="slide hidden flex-col items-center justify-center p-6 mc-block rounded-2xl max-w-4xl w-full text-white">
+      <h2 class="text-xl md:text-2xl font-pixel text-pink-300 mb-3 text-center drop-shadow-[2px_2px_0_#000]">
+        🐷 ¡Experimento Especial!
+      </h2>
+      <p class="text-base md:text-lg text-gray-200 mb-4 text-center font-bold">¿Puede la IA imaginar un <b>Cerdo Superhéroe Volador</b>?</p>
+
+      <button onclick="generatePigAIArt()" class="mc-button-wood text-white font-pixel text-sm md:text-base px-8 py-3 rounded-lg shadow-lg mb-4 flex items-center gap-2">
+        <span>✨ Generar Cerdo Volador</span>
+      </button>
+
+      <div class="w-full h-full bg-black/40 rounded-lg flex items-center justify-center border-4 border-dashed border-pink-400 relative overflow-hidden">
+        <div id="pig-loader" class="hidden flex-col items-center">
+          <div class="animate-spin text-5xl mb-2">🎨</div>
+          <p class="font-pixel text-sm text-pink-300">Invocando personaje...</p>
+        </div>
+        <img id="pig-img" class="hidden h-full object-contain rounded-lg shadow-md" alt="Cerdo Volador">
+        <p id="pig-placeholder" class="text-pink-300 font-pixel text-xs md:text-sm">Pulsa el botón para invocarlo</p>
+      </div>
+    </div>
+
+    <!-- DIAPOSITIVA 10: Final y Conclusión -->
+    <div class="slide hidden flex-col items-center justify-center text-center p-6 mc-block-grass rounded-2xl max-w-4xl w-full text-white">
+      <div class="text-7xl mb-4">💎</div>
+      <h2 class="text-2xl md:text-4xl font-pixel text-yellow-300 mb-4 drop-shadow-[3px_3px_0_#000]">
+        ¡Recuerda siempre!
+      </h2>
+      <p class="text-lg md:text-2xl max-w-2xl font-bold mb-8 drop-shadow-[1px_1px_0_#000] leading-snug">
+        La IA es una herramienta súper lista, pero <b>la verdadera magia, la creatividad y el corazón siempre vienen de VOSOTROS</b>. ❤️
+      </p>
+      <button onclick="celebrate()" class="mc-button-green text-white text-base md:text-lg font-pixel px-8 py-4 rounded-lg shadow-lg">
+        🎉 ¡Fiesta Final!
+      </button>
+    </div>
+
+  </main>
+
+  <!-- Navegación Inferior estilo HUD con Mini Creeper -->
+  <footer class="flex justify-between items-center mc-block p-3 rounded-xl z-20 gap-4">
+    <button onclick="prevSlide()" class="mc-button-wood text-white font-pixel text-xs md:text-sm px-4 py-2 rounded-lg flex items-center gap-2">
+      ⬅️ Anterior
+    </button>
+    
+    <div class="relative flex-1 max-w-xl mx-2 h-10 flex items-center justify-between px-3 bg-black/50 border-2 border-stone-600 rounded">
+      <div class="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-1 bg-stone-700 z-0"></div>
+      <div id="dots-container" class="relative w-full flex justify-between items-center z-10"></div>
+      <div id="creeper-avatar" class="pixel-creeper absolute z-20 -top-1 pointer-events-none"></div>
+    </div>
+
+    <button onclick="nextSlide()" class="mc-button-wood text-white font-pixel text-xs md:text-sm px-4 py-2 rounded-lg flex items-center gap-2">
+      Siguiente ➡️
+    </button>
+  </footer>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    let trainedCount = 0;
+
+    const PIG_IMAGE_URL = 'https://tienda.grupo-sm.com/wp-content/uploads/2026/11/17131.jpg';
+
+    function init() {
+      slides.forEach((slide, idx) => {
+        if (idx === 0) slide.classList.remove('hidden');
+        else slide.classList.add('hidden');
+      });
+      renderDots();
+      updateHeader();
+      updateCreeperPosition();
+    }
+
+    function showSlide(index) {
+      if (index < 0 || index >= totalSlides) return;
+      slides[currentSlide].classList.add('hidden');
+      slides[currentSlide].classList.remove('flex');
+
+      currentSlide = index;
+      slides[currentSlide].classList.remove('hidden');
+      slides[currentSlide].classList.add('flex');
+
+      updateHeader();
+      updateCreeperPosition();
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) showSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) showSlide(currentSlide - 1);
+    }
+
+    function updateHeader() {
+      document.getElementById('slide-indicator').innerText = `Diapositiva ${currentSlide + 1} / ${totalSlides}`;
+    }
+
+    function renderDots() {
+      const container = document.getElementById('dots-container');
+      container.innerHTML = '';
+      slides.forEach((_, idx) => {
+        const dot = document.createElement('div');
+        dot.className = `w-3 h-3 bg-stone-500 border border-black cursor-pointer hover:bg-yellow-400 transition-all rounded-none`;
+        dot.title = `Ir a la diapositiva ${idx + 1}`;
+        dot.onclick = () => showSlide(idx);
+        container.appendChild(dot);
+      });
+    }
+
+    function updateCreeperPosition() {
+      const dots = document.getElementById('dots-container').children;
+      const creeper = document.getElementById('creeper-avatar');
+
+      Array.from(dots).forEach((dot, idx) => {
+        if (idx <= currentSlide) {
+          dot.className = 'w-3 h-3 bg-yellow-400 border border-black cursor-pointer transition-all';
+        } else {
+          dot.className = 'w-3 h-3 bg-stone-600 border border-black cursor-pointer transition-all';
+        }
+      });
+
+      if (dots.length > 0) {
+        const targetDot = dots[currentSlide];
+        const containerRect = document.getElementById('dots-container').getBoundingClientRect();
+        const dotRect = targetDot.getBoundingClientRect();
+        const offsetLeft = dotRect.left - containerRect.left + (dotRect.width / 2) - 12;
+        creeper.style.left = `${offsetLeft}px`;
+      }
+    }
+
+    function toggleCard(card) {
+      card.classList.toggle('flipped');
+    }
+
+    function trainDog(num) {
+      trainedCount++;
+      const progress = Math.min(trainedCount * 25, 100);
+      const progressBar = document.getElementById('ai-progress');
+      const statusText = document.getElementById('ai-status');
+
+      progressBar.style.width = progress + '%';
+      progressBar.innerText = progress + '%';
+
+      if (progress < 50) {
+        statusText.innerText = "Empezando a entender... (" + trainedCount + "/4)";
+        statusText.className = "text-yellow-400";
+      } else if (progress < 100) {
+        statusText.innerText = "¡Casi lo tiene! ¡Sigue enseñándole! (" + trainedCount + "/4)";
+        statusText.className = "text-cyan-300";
+      } else {
+        statusText.innerText = "¡¡ENTRENADA!! ¡La IA ya sabe qué es un perro! 🐶🎉";
+        statusText.className = "text-green-400 text-sm";
+        confetti({ particleCount: 50, spread: 60 });
+      }
+    }
+
+    function generateCustomAIArt() {
+      const animal = document.getElementById('select-animal').value;
+      const costume = document.getElementById('select-costume').value;
+      const action = document.getElementById('select-action').value;
+
+      const loader = document.getElementById('generator-loader');
+      const img = document.getElementById('generated-img');
+      const placeholder = document.getElementById('generator-placeholder');
+
+      placeholder.classList.add('hidden');
+      img.classList.add('hidden');
+      loader.classList.remove('hidden');
+      loader.classList.add('flex');
+
+      const prompt = encodeURIComponent(`cute ${costume} ${animal} ${action}, minecraft voxel pixel art style, 3d render`);
+      const url = `https://image.pollinations.ai/prompt/${prompt}?width=600&height=400&nologo=true`;
+
+      const tempImg = new Image();
+      tempImg.src = url;
+      tempImg.onload = () => {
+        loader.classList.remove('flex');
+        loader.classList.add('hidden');
+        img.src = url;
+        img.classList.remove('hidden');
+      };
+    }
+
+    function generatePigAIArt() {
+      const loader = document.getElementById('pig-loader');
+      const img = document.getElementById('pig-img');
+      const placeholder = document.getElementById('pig-placeholder');
+
+      placeholder.classList.add('hidden');
+      img.classList.add('hidden');
+      loader.classList.remove('hidden');
+      loader.classList.add('flex');
+
+      const tempImg = new Image();
+      tempImg.src = PIG_IMAGE_URL;
+      tempImg.onload = () => {
+        loader.classList.remove('flex');
+        loader.classList.add('hidden');
+        img.src = PIG_IMAGE_URL;
+        img.classList.remove('hidden');
+        confetti({ particleCount: 70, spread: 70 });
+      };
+      tempImg.onerror = () => {
+        loader.classList.remove('flex');
+        loader.classList.add('hidden');
+        img.src = PIG_IMAGE_URL;
+        img.classList.remove('hidden');
+        confetti({ particleCount: 70, spread: 70 });
+      };
+    }
+
+    function celebrate() {
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.6 }
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    });
+
+    window.addEventListener('resize', updateCreeperPosition);
+
+    init();
+  </script>
+</body>
+</html>
