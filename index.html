@@ -183,9 +183,10 @@
       transform: translate(-50%, -50%) scale(1);
     }
     .student-name-tag:hover {
-      transform: translate(-50%, -50%) scale(1.15);
-      border-color: #ffffff;
-      color: #ffffff;
+      transform: translate(-50%, -50%) scale(1.15) !important;
+      border-color: #ffffff !important;
+      color: #ffffff !important;
+      animation-play-state: paused;
     }
 	@keyframes spinSlow {
 	  0% { transform: rotate(0deg); }
@@ -193,6 +194,25 @@
 	}
 	.spin-active {
 	  animation: spinSlow 2s linear infinite;
+	}
+	@keyframes floatAndWobble {
+	  0% { transform: translate(-50%, -50%) translate(0px, 0px) rotate(0deg); }
+	  25% { transform: translate(-50%, -50%) translate(-8px, 10px) rotate(-3deg); }
+	  50% { transform: translate(-50%, -50%) translate(10px, -6px) rotate(3deg); }
+	  75% { transform: translate(-50%, -50%) translate(-6px, -10px) rotate(-2deg); }
+	  100% { transform: translate(-50%, -50%) translate(0px, 0px) rotate(0deg); }
+	}
+
+	@keyframes colorShift {
+	  0% { color: #fde047; border-color: #eab308; }
+	  25% { color: #67e8f9; border-color: #22d3ee; }
+	  50% { color: #f472b6; border-color: #ec4899; }
+	  75% { color: #4ade80; border-color: #22c55e; }
+	  100% { color: #fde047; border-color: #eab308; }
+	}
+
+	.student-name-tag.animate-chaos {
+	  animation: floatAndWobble 2.5s ease-in-out infinite, colorShift 4s linear infinite;
 	}
   </style>
 </head>
@@ -995,6 +1015,13 @@
           tag.style.left = `${targetX}px`;
           tag.style.top = `${targetY}px`;
           tag.classList.add('show');
+          
+          // Activa la oscilación y cambio de color constante en cadena
+          setTimeout(() => {
+            tag.classList.add('animate-chaos');
+            // Desincroniza el ritmo de animación de cada nombre de forma aleatoria
+            tag.style.animationDelay = `${(index * 0.15) % 2}s, ${(index * 0.3) % 3}s`;
+          }, 1000);
         }, index * 25);
       });
 
